@@ -1,24 +1,48 @@
 1. 
-    a. Which prescriber had the highest total number of claims (totaled over all drugs)? Report the npi and the total number of claims.
-    
-SELECT p.npi, SUM(pr.total_claim_count) AS total_claims
-FROM prescriber p
-JOIN prescription pr ON p.npi = pr.npi
-GROUP BY p.npi
-ORDER BY total_claims DESC
-LIMIT 1;	
+ a. Which prescriber had the highest total number of claims (totaled over all drugs)? Report the npi and the total number of claims.
+	
+select *
+From prescription
+
+select npi, SUM(total_claim_count) AS total_claims
+from prescriber
+inner join prescription 
+USING(npi)
+Group By npi
+Order by total_claims DESC
+Limit 1;
+--- npi # 1881634483 had a total claim of 99707 which was the highest. 
+
 b. Repeat the above, but this time report the nppes_provider_first_name, nppes_provider_last_org_name,  specialty_description, and the total number of claims.
 
-SELECT p.nppes_provider_first_name, p.nppes_provider_last_org_name, p.specialty_description, SUM(pr.total_claim_count) AS total_claims
+select npi, nppes_provider_first_name, nppes_provider_last_org_name,  specialty_description, SUM(total_claim_count) AS total_claims
+from prescriber
+inner join prescription 
+USING(npi)
+Group By npi, nppes_provider_first_name, nppes_provider_last_org_name,  specialty_description
+Order by total_claims DESC;
+
+2. 
+
+a. Which specialty had the most total number of claims (totaled over all drugs)?
+	
+SELECT p.specialty_description, SUM(pr.total_claim_count) AS total_claims
 FROM prescriber p
 JOIN prescription pr ON p.npi = pr.npi
-GROUP BY p.npi
-ORDER BY total_claims DESC
-LIMIT 1;
-2. 
-    a. Which specialty had the most total number of claims (totaled over all drugs)?
+GROUP BY p.specialty_description
+ORDER BY total_claims DESC;
 
-    b. Which specialty had the most total number of claims for opioids?
+ b. Which specialty had the most total number of claims for opioids?
+	
+SELECT specialty_description, opioid_drug_flag, SUM(total_claim_count) AS total_claims
+FROM prescriber
+JOIN prescription 
+USING(npi)
+JOIN drug
+USING(drug_name)
+Where opioid_drug_flag = 'Y'
+GROUP BY specialty_description, opioid_drug_flag
+ORDER BY total_claims DESC;
 
     c. **Challenge Question:** Are there any specialties that appear in the prescriber table that have no associated prescriptions in the prescription table?
 
@@ -26,13 +50,45 @@ LIMIT 1;
 
 3. 
     a. Which drug (generic_name) had the highest total drug cost?
+	
+select generic_name, SUM(total_drug_cost) AS total_drug
+from drug
+Inner join prescription
+Using(drug_name)
+group by generic_name
+order by total_drug DESC;
 
-    b. Which drug (generic_name) has the hightest total cost per day? **Bonus: Round your cost per day column to 2 decimal places. Google ROUND to see how this works.**
+-- Insulin Glargine, Hum, Rec, Anlog had the highest drug cost.
 
+    b. Which drug (generic_name) has the hightest total cost per day?
+
+select generic_name, SUM(total_drug_cost/total_day_supply) AS total_cost_per_day
+from drug
+Inner join prescription
+Using(drug_name)
+group by generic_name
+order by total_cost_per_day DESC;
+
+**Bonus: Round your cost per day column to 2 decimal places. Google ROUND to see how this works.**
+	
+select generic_name, ROUND(SUM(total_drug_cost/total_day_supply),2) AS total_cost_per_day
+from drug
+Inner join prescription
+Using(drug_name)
+group by generic_name
+order by total_cost_per_day DESC;
 4. 
-    a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs.
+a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs.
 
-    b. Building off of the query you wrote for part a, determine whether more was spent (total_drug_cost) on opioids or on antibiotics. Hint: Format the total costs as MONEY for easier comparision.
+SELECT drug_name AS drug_name,
+    CASE 
+        WHEN opioid_drug_flag = 'Y' THEN 'opioid'
+        WHEN antibiotic_drug_flag = 'Y' THEN 'antibiotic'
+        ELSE 'neither'
+    END AS drug_type
+FROM drug;
+
+b. Building off of the query you wrote for part a, determine whether more was spent (total_drug_cost) on opioids or on antibiotics. Hint: Format the total costs as MONEY for easier comparision.
 
 5. 
     a. How many CBSAs are in Tennessee? **Warning:** The cbsa table contains information for all states, not just Tennessee.
